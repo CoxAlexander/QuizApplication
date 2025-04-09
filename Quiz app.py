@@ -4,10 +4,10 @@ import itertools
 
 
 #Logic
-class Load:
+class Backend: 
     @staticmethod
     #loading the text files with error handling
-    def run(filename):
+    def load(filename):
         try:
             with open(filename, "r") as file:
                 texts = [line.strip() for line in file if line.strip()]
@@ -15,9 +15,8 @@ class Load:
         except FileNotFoundError:
             return ["File not found"]
 
-class Start:
     @staticmethod
-    def run():
+    def start():
         #initializing everything for after the start screen
         global question_count, text_cycle, button_cycle, solution_cycle, score
         question_count = 0
@@ -28,26 +27,10 @@ class Start:
         button_cycle = itertools.cycle(buttons * 4)
         solution_cycle = itertools.cycle(solutions)
         #calling for the GUI to be set up
-        Main_Window.run()
+        FrontEnd.Main_Window()
 
-class Main_Window:
     @staticmethod
-    def run():
-        #configures the placement of the text and buttons
-        label.pack(pady=10)
-        max_width = max(len(text) for text in buttons)
-        for button in [button1, button2, button3, button4]:
-            button.config(width=max_width, height=3)
-        button1.grid(row=0, column=0, padx=20, pady=5)
-        button2.grid(row=0, column=1, padx=20, pady=5)
-        button3.grid(row=1, column=0, padx=20, pady=5)
-        button4.grid(row=1, column=1, padx=20, pady=5)
-        #calls for the next question
-        Next.run()
-
-class Next:
-    @staticmethod
-    def run():
+    def Next():
 
         #end the quiz
         global question_count
@@ -67,19 +50,36 @@ class Next:
 
         #button functionality
         correct_choice = int(next(solution_cycle))
-        button1.config(text=button1_text, state=tk.NORMAL, command=lambda: Selected.run(1, correct_choice))
-        button2.config(text=button2_text, state=tk.NORMAL, command=lambda: Selected.run(2, correct_choice))
-        button3.config(text=button3_text, state=tk.NORMAL, command=lambda: Selected.run(3, correct_choice))
-        button4.config(text=button4_text, state=tk.NORMAL, command=lambda: Selected.run(4, correct_choice))
+        button1.config(text=button1_text, state=tk.NORMAL, command=lambda: Backend.Selected(1, correct_choice))
+        button2.config(text=button2_text, state=tk.NORMAL, command=lambda: Backend.Selected(2, correct_choice))
+        button3.config(text=button3_text, state=tk.NORMAL, command=lambda: Backend.Selected(3, correct_choice))
+        button4.config(text=button4_text, state=tk.NORMAL, command=lambda: Backend.Selected(4, correct_choice))
 
-class Selected:
     @staticmethod
     #handles answering and calls the next question
-    def run(choice, correct_choice):
+    def Selected(choice, correct_choice):
         global score
         if choice == correct_choice:
             score += 1
-        Next.run()
+        Backend.Next()
+
+class FrontEnd:
+    @staticmethod
+    def Main_Window():
+        #configures the placement of the text and buttons
+        label.pack(pady=10)
+        max_width = max(len(text) for text in buttons)
+        for button in [button1, button2, button3, button4]:
+            button.config(width=max_width, height=3)
+        button1.grid(row=0, column=0, padx=20, pady=5)
+        button2.grid(row=0, column=1, padx=20, pady=5)
+        button3.grid(row=1, column=0, padx=20, pady=5)
+        button4.grid(row=1, column=1, padx=20, pady=5)
+        #calls for the next question
+        Backend.Next()
+
+
+
 
 
 #GUI
@@ -92,14 +92,14 @@ score = 0
 question_count = 0
 
 #file paths
-texts = Load.run("questions.txt")
-buttons = Load.run("answers.txt")
-solutions = Load.run("solutions.txt")
+texts = Backend.load("questions.txt")
+buttons = Backend.load("answers.txt")
+solutions = Backend.load("solutions.txt")
 
 #starting screen
 start_label = tk.Label(root, text="All questions are subject to change.")
 start_label.pack(pady=10)
-start_button = tk.Button(root, text="begin", width=10, height=3, command=Start.run)
+start_button = tk.Button(root, text="begin", width=10, height=3, command=Backend.start)
 start_button.pack()
 
 #button and label object setup

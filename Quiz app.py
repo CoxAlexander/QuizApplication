@@ -1,19 +1,38 @@
 #Imports
 import tkinter as tk
 import itertools
-
+import sqlite3
 
 #Logic
 class Backend: 
     @staticmethod
-    #loading the text files with error handling
-    def load(filename):
+    #1
+    def load():
         try:
-            with open(filename, "r") as file:
-                texts = [line.strip() for line in file if line.strip()]
-            return texts if texts else ["No text available"]
-        except FileNotFoundError:
-            return ["File not found"]
+            conn = sqlite3.connect("QuizDatabase.db")
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT Solutions.Ans1, Solutions.Ans2, Solutions.Ans3, Solutions.Ans4, Solutions.SolutionNum
+                FROM Solutions
+            """)
+            SolutionRows = cursor.fetchall()
+            cursor.execute("""
+                           Select Questions.QuestionText 
+                           FROM Questions
+                           """)
+            QuestionRows = cursor.fetchall()
+            conn.close()
+
+            if not SolutionRows and not QuestionRows:
+                return ["No data available"], [], []
+
+            questions = [row[0] for row in QuestionRows]
+            answers_flat = [ans for row in SolutionRows for ans in row[0:4]]
+            correct_answers = [row[4] for row in SolutionRows]
+            return questions, answers_flat, correct_answers
+
+        except sqlite3.Error as e:
+            return ["Database error"], [], []
 
     @staticmethod
     def start():
@@ -24,15 +43,13 @@ class Backend:
         start_button.pack_forget()
         start_label.pack_forget()
         text_cycle = itertools.cycle(texts)
-        button_cycle = itertools.cycle(buttons * 4)
+        button_cycle = itertools.cycle(buttons)
         solution_cycle = itertools.cycle(solutions)
         #calling for the GUI to be set up
         FrontEnd.Main_Window()
 
     @staticmethod
     def Next():
-
-        #end the quiz
         global question_count
         if question_count >= num_questions:
             label.config(text=f"Quiz Complete! Your Score: {score}/{num_questions}")
@@ -40,7 +57,7 @@ class Backend:
                 button.config(state=tk.DISABLED)
             return
 
-        #replaces text for questions and answers
+        # Update the question count and text
         question_count += 1
         label.config(text=next(text_cycle))
         button1_text = next(button_cycle)
@@ -48,8 +65,10 @@ class Backend:
         button3_text = next(button_cycle)
         button4_text = next(button_cycle)
 
-        #button functionality
+        # Dynamically assign the correct answer for this question
         correct_choice = int(next(solution_cycle))
+
+        # Update the button text and bind correct choice to each button
         button1.config(text=button1_text, state=tk.NORMAL, command=lambda: Backend.Selected(1, correct_choice))
         button2.config(text=button2_text, state=tk.NORMAL, command=lambda: Backend.Selected(2, correct_choice))
         button3.config(text=button3_text, state=tk.NORMAL, command=lambda: Backend.Selected(3, correct_choice))
@@ -87,14 +106,12 @@ root = tk.Tk()
 root.geometry("500x300")
 
 #important variables
-num_questions = 10
+num_questions = 5
 score = 0
 question_count = 0
 
 #file paths
-texts = Backend.load("questions.txt")
-buttons = Backend.load("answers.txt")
-solutions = Backend.load("solutions.txt")
+texts, buttons, solutions = Backend.load()
 
 #starting screen
 start_label = tk.Label(root, text="All questions are subject to change.")

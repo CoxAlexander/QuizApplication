@@ -8,28 +8,31 @@ class Backend:
     @staticmethod
     #1
     def load():
+        quizId = 1
         try:
             conn = sqlite3.connect("QuizDatabase.db")
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT Solutions.Ans1, Solutions.Ans2, Solutions.Ans3, Solutions.Ans4, Solutions.SolutionNum
-                FROM Solutions
-            """)
+                FROM Solutions WHERE Solutions.QuizId == """ + str(quizId)
+            
+            )
             SolutionRows = cursor.fetchall()
             cursor.execute("""
                            Select Questions.QuestionText 
-                           FROM Questions
-                           """)
+                           FROM Questions WHERE Questions.QuizId == """ + str(quizId)
+                           )
             QuestionRows = cursor.fetchall()
             conn.close()
-
+            
             if not SolutionRows and not QuestionRows:
                 return ["No data available"], [], []
 
             questions = [row[0] for row in QuestionRows]
             answers_flat = [ans for row in SolutionRows for ans in row[0:4]]
             correct_answers = [row[4] for row in SolutionRows]
-            return questions, answers_flat, correct_answers
+            num_questions = len(QuestionRows)
+            return questions, answers_flat, correct_answers, num_questions
 
         except sqlite3.Error as e:
             return ["Database error"], [], []
@@ -106,12 +109,11 @@ root = tk.Tk()
 root.geometry("500x300")
 
 #important variables
-num_questions = 5
 score = 0
 question_count = 0
 
 #file paths
-texts, buttons, solutions = Backend.load()
+texts, buttons, solutions, num_questions = Backend.load()
 
 #starting screen
 start_label = tk.Label(root, text="All questions are subject to change.")
@@ -124,9 +126,9 @@ label = tk.Label(root, text="")
 label.pack()
 button_frame = tk.Frame(root)
 button_frame.pack()
-button1 = tk.Button(button_frame, text="")
-button2 = tk.Button(button_frame, text="")
-button3 = tk.Button(button_frame, text="")
-button4 = tk.Button(button_frame, text="")
+button1 = tk.Button(button_frame)
+button2 = tk.Button(button_frame)
+button3 = tk.Button(button_frame)
+button4 = tk.Button(button_frame)
 
 root.mainloop()

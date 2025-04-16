@@ -93,6 +93,8 @@ class Backend:
         if question_count >= num_questions:
             score_percent = (score / num_questions) * 100
             label.config(text=f"Quiz Complete! Your Score: {score}/{num_questions} {score_percent:.2f}%")
+            for button in [button1, button2, button3, button4]:
+                button.config(state=tk.DISABLED)
             try:
                 conn = sqlite3.connect("QuizDatabase.db")
                 cursor = conn.cursor()
@@ -105,9 +107,6 @@ class Backend:
                 conn.close()
             except:
                 return
-            
-            for button in [button1, button2, button3, button4]:
-                button.config(state=tk.DISABLED)
             return
 
         question_count += 1

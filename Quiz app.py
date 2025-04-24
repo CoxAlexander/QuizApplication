@@ -5,6 +5,7 @@ import sqlite3
 
 #Window Setup first
 root = tk.Tk()
+root.title("Quiz App")
 root.geometry("750x500")
 
 # Globals before anything else because otherwise it doesn't work
@@ -24,7 +25,7 @@ class Backend:
             try:
                 conn = sqlite3.connect("QuizDatabase.db")
                 cursor = conn.cursor()
-                cursor.execute("SELECT QuizID, QuizName FROM Quiz")
+                cursor.execute("SELECT QuizID, QuizName, Score FROM Quiz")
                 options = cursor.fetchall()
                 conn.close()
                 return options
@@ -74,6 +75,7 @@ class Backend:
         start_button.pack_forget()
         start_label.pack_forget()
         quiz_select_label.pack_forget()
+        newQuiz_button.pack_forget()
         
         for widget in root.pack_slaves():
             if isinstance(widget, tk.Radiobutton):
@@ -128,6 +130,114 @@ class Backend:
         if choice == correct_choice:
             score += 1
         Backend.Next()
+        
+    
+        
+    @staticmethod
+    def new():
+        
+        start_button.pack_forget()
+        start_label.pack_forget()
+        quiz_select_label.pack_forget()
+        newQuiz_button.pack_forget()
+        for widget in root.pack_slaves():
+            if isinstance(widget, tk.Radiobutton):
+                widget.pack_forget()
+        
+        newQuizLabel.pack()
+        newQuizName.pack()
+        confirmButton.pack()
+    
+    @staticmethod
+    def addQuiz():
+        quizName = newQuizName.get("1.0", "end-1c")
+        if quizName != "": 
+            try:
+                    conn = sqlite3.connect("QuizDatabase.db")
+                    cursor = conn.cursor()
+                    cursor.execute("INSERT INTO Quiz (QuizName,Score) VALUES (?,0) ", (quizName,))
+                    conn.commit()
+                    cursor.execute("SELECT QuizID FROM Quiz WHERE QuizName == ?", (quizName,))
+                    newQuizIdRows = cursor.fetchall()
+                    newQuizId = [row[0] for row in newQuizIdRows]
+                    conn.close()
+                    Backend.addQuestions(newQuizId)
+            except:
+                errorLabel = tk.Label(text="An error has occured in quiz making")
+                errorLabel.pack()
+            
+    @staticmethod
+    def addQuestions(newQuizId):
+        newQuizLabel.config(text="Enter a question")
+        answer1Label.pack_forget()
+        newAnswer1.pack_forget()
+        answer2Label.pack_forget()
+        newAnswer2.pack_forget()
+        answer3Label.pack_forget()
+        newAnswer3.pack_forget()
+        answer4Label.pack_forget()
+        newAnswer4.pack_forget()
+        SolutionLabel.pack_forget()
+        newQuizName.delete("1.0","end")
+        newQuizName.pack()
+        confirmButton.config(text="Confirm Question", command=lambda: Backend.addQuestionDatabase(newQuizId))
+        confirmButton.pack()
+        
+    @staticmethod 
+    def addQuestionDatabase(quizId):
+        questionText = newQuizName.get("1.0", "end-1c")
+        if questionText != "": 
+            try:
+                    conn = sqlite3.connect("QuizDatabase.db")
+                    cursor = conn.cursor()
+                    cursor.execute("INSERT INTO Questions (QuestionText,QuizId) VALUES (?,?) ", (questionText,quizId[0],))
+                    conn.commit()
+                    conn.close()
+                    confirmButton.pack_forget()
+                    newQuizName.delete("1.0","end")
+                    newQuizName.pack_forget()
+                    Backend.addAnswers(quizId,questionText)
+            except:
+                errorLabel = tk.Label(text="An error has occured")
+                errorLabel.pack()    
+    def addAnswers(quizId,questionText):
+        newQuizLabel.config(text=questionText + "\n Enter the answers to the question and select which one is right")
+        confirmButton.config(text="Next Question", command=lambda: Backend.addAnswersDatabase(quizId))
+        
+        answer1Label.pack()
+        newAnswer1.pack()
+        answer2Label.pack()
+        newAnswer2.pack()
+        answer3Label.pack()
+        newAnswer3.pack()
+        answer4Label.pack()
+        newAnswer4.pack()
+        SolutionLabel.pack()
+        newQuizName.pack()
+        confirmButton.pack()
+    
+    def addAnswersDatabase(quizId):
+        answer1Text = newAnswer1.get("1.0", "end-1c")
+        answer2Text = newAnswer2.get("1.0", "end-1c")
+        answer3Text = newAnswer3.get("1.0", "end-1c")
+        answer4Text = newAnswer4.get("1.0", "end-1c")
+        SolutionNum = newQuizName.get("1.0", "end-1c")
+        newAnswer1.delete("1.0","end")
+        newAnswer2.delete("1.0","end")
+        newAnswer3.delete("1.0","end")
+        newAnswer4.delete("1.0","end")
+        newQuizName.delete("1.0","end")
+        if ((answer1Text!="" and answer2Text!="" and answer3Text!="" and answer4Text!="") and SolutionNum !=("1" or "2" or "3" or "4")):
+            try:
+                conn = sqlite3.connect("QuizDatabase.db")
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO Solutions (SolutionNum,Ans1,Ans2,Ans3,Ans4,QuizId) VALUES (?,?,?,?,?,?) ", (int(SolutionNum),answer1Text,answer2Text,answer3Text,answer4Text,quizId[0],))
+                conn.commit()
+                conn.close()
+                Backend.addQuestions(quizId)
+            except:
+                errorLabel = tk.Label(text="An weird error has occured")
+                errorLabel.pack()   
 
 # Frontend GUI
 class FrontEnd:
@@ -156,12 +266,27 @@ quiz_select_label = tk.Label(root, text="Select a Quiz:", font=("Arial", 20))
 quiz_select_label.pack()
 
 quiz_options = Backend.load()
-for quiz_id, quiz_name in quiz_options:
-    tk.Radiobutton(root, text=quiz_name, variable=selected_quiz_id, value=quiz_id).pack(anchor='c')
+for quiz_id, quiz_name, quiz_score in quiz_options:
+    tk.Radiobutton(root, text=quiz_name + " : " + str(quiz_score)+"%", variable=selected_quiz_id, value=quiz_id).pack(anchor='c')
 
 start_button = tk.Button(root, text="begin", width=10, height=3, command=Backend.start)
 start_button.pack(pady=10)
 
+newQuiz_button = tk.Button(root,text="Make New Quiz", width=15, height=3, command=Backend.new)
+newQuiz_button.pack(pady=10)
+newQuizName = tk.Text(root,height=0, width=50)
+newQuizLabel = tk.Label(root,text="Enter the Quiz name")
+confirmButton = tk.Button(root, text="Confirm", command=Backend.addQuiz)
+newAnswer1 = tk.Text(root,height=0, width=50)
+answer1Label = tk.Label(root,text="Answer 1")
+newAnswer2 = tk.Text(root,height=0, width=50)
+answer2Label = tk.Label(root,text="Answer 2")
+newAnswer3 = tk.Text(root,height=0, width=50)
+answer3Label = tk.Label(root,text="Answer 3")
+newAnswer4 = tk.Text(root,height=0, width=50)
+answer4Label = tk.Label(root,text="Answer 4")
+SolutionLabel = tk.Label(root,text="Type either 1,2,3,4 to indicate which answer is correct")
+#intialize new quiz text box and label and button
 label = tk.Label(root, font=("Arial", 20))
 button_frame = tk.Frame(root)
 button1 = tk.Button(button_frame)

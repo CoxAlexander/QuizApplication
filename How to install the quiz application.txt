@@ -1,3 +1,0 @@
-How to install the quiz application:
-
-Go to this link: https://github.com/CoxAlexander/QuizApplication and download all the files that are included for the quiz application.
